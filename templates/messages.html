@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+  <style>
+    .collapse-content {
+      max-height: 800px;
+      overflow-y: auto;
+      display: flex;
+    }
+  </style>
+</head>
+<body>
+<title>Mesaje pentru cautare</title>
+<div class="container">
+  {% for message in messages %}
+    <div class="panel-group">
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          <h4 class="panel-title">
+            <button type="button" class="btn btn-info" data-toggle="collapse" data-target="#demo_{{ loop.index }}">
+              {{ message['date']|safe }}
+            </button>
+          </h4>
+        </div>
+        <div id="demo_{{ loop.index }}" class="panel-collapse collapse">
+          <div class="panel-body collapse-content">
+            {{ message['content']|safe }}
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+  <button class="btn btn-info" data-toggle="collapse" data-target="#demo" onclick="closeServer()">
+    Alege alta optiune din consola
+  </button>
+  <script>
+    function closeServer() {
+        fetch('/close-server', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data.message);
+            })
+            .catch(error => {
+                console.error('Eroare în închiderea serverului', error);
+            });
+    }
+</script>
+</div>
+
+</body>
+</html>
