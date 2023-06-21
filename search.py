@@ -6,6 +6,8 @@ import email
 from datetime import datetime
 import pytz
 import sys
+import quopri
+from email.header import decode_header
 import signal
 import os
 from email.mime.text import MIMEText
@@ -24,7 +26,7 @@ search_string = sys.argv[1]
 @app.route('/close-server', methods=['POST'])
 def close_server():
     os.kill(os.getpid(), signal.SIGINT)
-    
+
     return jsonify
 
 @app.route('/')
@@ -82,6 +84,10 @@ def get_message(service, user_id, msg_id):
         # grab the string from the byte object
         mime_msg = email.message_from_bytes(msg_str)
 
+        sender = mime_msg['From']
+        recipient = mime_msg['To']
+        subject = mime_msg['Subject']
+
         # check if the content is multipart (it usually is)
         content_type = mime_msg.get_content_maintype()
         
@@ -102,7 +108,12 @@ def get_message(service, user_id, msg_id):
         datetime_obj = parsed_date.astimezone(timezone)
         formatted_date = datetime_obj.strftime("%Y-%m-%d %H:%M:%S")
 
+        subject = decode_header(subject)[0][0]
+
         message_data = {
+            'sender': sender,
+            'recipient': recipient,
+            'subject': quopri.decodestring(subject).decode('utf-8'),
             'date': formatted_date,
             'content': html_content
         }
