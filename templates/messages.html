@@ -7,9 +7,9 @@
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
   <style>
     .collapse-content {
-      max-height: 800px;
+      max-height: 600px;
       overflow-y: auto;
-      display: inline-flex;
+      display: block;
     }
   </style>
 </head>
@@ -21,7 +21,7 @@
       <div class="panel panel-default">
         <div class="panel-heading">
           <h4 class="panel-title">
-            <button type="button" class="btn btn-info" data-toggle="collapse" data-target="#demo_{{ loop.index }}">
+            <button type="button" class="btn btn-primary" data-toggle="collapse" data-target="#demo_{{ loop.index }}">
               {{ message['date']|safe }}
               <br>
               {{ message['subject']|safe }}
@@ -32,7 +32,7 @@
             <div class="panel-body collapse-content">
                 <p><b>Sender:</b> {{ message['sender']|safe }}<br>
                 <b>Receiver:</b> {{ message['recipient']|safe }}</p>
-                <button class="btn btn-success backup-button" data-message-id="{{ message['id'] }}">Backup</button>
+                <button class="btn btn-warning backup-button" data-toggle="button" aria-pressed="false" autocomplete="off" data-message-id="{{ message['id'] }}">Backup</button>
             </div>
             <div class="panel-body collapse-content">
                 <p>{{ message['content']|safe }}</p>
@@ -41,8 +41,8 @@
       </div>
     </div>
   {% endfor %}
-  <button class="btn btn-info" data-toggle="collapse" data-target="#demo" onclick="closeServer()">
-    Alege alta optiune din consola
+  <button class="btn btn-danger" data-toggle="collapse" data-target="#demo" onclick="closeServer()">
+    Alege alta optiune
   </button>
   <script>
     function closeServer() {

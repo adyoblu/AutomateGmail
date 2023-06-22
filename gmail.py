@@ -7,7 +7,6 @@ def display_menu():
     layout = [
         [sg.Button("1) Afiseaza toate mesajele de astazi(INBOX si SPAM)", key='option1')],
         [sg.Button("2) Afiseaza mesajele in functie de subiect anume", key='option2')],
-        [sg.Button("3) Fa backup mesaje", key='option3')],
         [sg.Button("4) Ieșire", key='option0')]
     ]
     
@@ -53,10 +52,6 @@ def main():
             webbrowser.open("http://127.0.0.1:5000", new=0)
             subprocess.run(['python', 'search.py', search_string])
             window.un_hide()
-        elif event == 'option3':
-            os.system('cls')
-            print("Ați selectat Opțiunea 3")
-            # Adăugați aici codul corespunzător pentru Opțiunea 3
 
     window.close()
 

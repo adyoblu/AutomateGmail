@@ -11,6 +11,7 @@ from bs4 import BeautifulSoup
 from email.header import decode_header
 import signal
 import os
+import webbrowser
 from googleapiclient import errors
 from email.mime.text import MIMEText
 from googleapiclient.discovery import build
@@ -39,10 +40,11 @@ def backup_message():
     # Realizați operațiunile de backup aici
     # Puteți folosi message_id pentru a identifica și salva emailul în Google Drive
     service = get_service()
-    save_email_to_drive(service, message_id)
+    backup_link = save_email_to_drive(service, message_id)
     print(f"Email backup requested for message ID: {message_id}")
 
     # Răspundeți cu un mesaj de confirmare
+    webbrowser.open(backup_link)
     return jsonify({'message': 'Backup request received'})
 
 
@@ -110,6 +112,8 @@ def get_message(service, user_id, msg_id):
         sender = mime_msg['From']
         recipient = mime_msg['To']
         subject = mime_msg['Subject']
+        from_address, sender_name = email.utils.parseaddr(sender)
+        to_address, receiver_name = email.utils.parseaddr(recipient)
         if subject is not None:
             subject = decode_header(subject)[0][0]
             subject = quopri.decodestring(subject).decode('utf-8', errors='replace')
@@ -127,8 +131,8 @@ def get_message(service, user_id, msg_id):
         formatted_date = datetime_obj.strftime("%Y-%m-%d %H:%M:%S")
 
         message_data = {
-            'sender': sender,
-            'recipient': recipient,
+            'sender': sender_name,
+            'recipient': receiver_name,
             'subject': subject,
             'date': formatted_date,
             'content': html_content
@@ -174,8 +178,6 @@ def save_email_to_drive(service, message_id):
     text = soup.get_text()
     content = f"Sender : {sender}\nReceiver: {recipient}\nTime&Date: {date}\n\n\n{text}"
     content = content.encode('utf-8')
-
-    print(content)
     backupService = get_backup()
     
     response = backupService.files().list(
@@ -197,8 +199,12 @@ def save_email_to_drive(service, message_id):
     file_name = f"{subject}.eml"
     file_metadata = {'name': file_name, 'mimeType': 'message/rfc822', 'parents': [folder_id]}
     media_body = MediaInMemoryUpload(content, mimetype='message/rfc822', chunksize=-1, resumable=True)
-    backupService.files().create(body=file_metadata, media_body=media_body, fields="id").execute()
+    uploaded = backupService.files().create(body=file_metadata, media_body=media_body, fields="id").execute()
 
+    file_id = uploaded.get('id')
+    file = backupService.files().get(fileId=file_id, fields='webViewLink').execute()
+    backup_link = file.get('webViewLink')
+    return backup_link
 
 def get_backup():
     creds = None
