@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template
+from flask import Flask, jsonify, request, render_template
 import pickle
 import os.path
 from apiclient import errors
@@ -7,6 +7,7 @@ from datetime import datetime
 from googleapiclient.errors import HttpError
 import pytz
 import quopri
+import signal
 from email.header import decode_header
 import os
 from email.mime.text import MIMEText
@@ -15,9 +16,13 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 import base64
 
-
 SCOPES = ['https://mail.google.com/']
 app = Flask(__name__, template_folder='templates')
+
+@app.route('/close-server', methods=['POST'])
+def close_server():
+    os.kill(os.getpid(), signal.SIGINT)
+    return jsonify
 
 @app.route('/')
 def display_messages():

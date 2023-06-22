@@ -7,6 +7,7 @@ from datetime import datetime
 import pytz
 import sys
 import quopri
+from bs4 import BeautifulSoup
 from email.header import decode_header
 import signal
 import os
@@ -15,10 +16,12 @@ from email.mime.text import MIMEText
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
+from googleapiclient.errors import HttpError
+from googleapiclient.http import MediaInMemoryUpload
 import base64
 
 # autorizatie fara restrictii
-SCOPES = ['https://mail.google.com/']
+SCOPES = ['https://mail.google.com/', 'https://www.googleapis.com/auth/drive']
 
 app = Flask(__name__, template_folder='templates')
 
@@ -28,6 +31,20 @@ search_string = sys.argv[1]
 def close_server():
     os.kill(os.getpid(), signal.SIGINT)
     return jsonify
+
+
+@app.route('/backup-message', methods=['POST'])
+def backup_message():
+    message_id = request.json['messageId']
+    # Realizați operațiunile de backup aici
+    # Puteți folosi message_id pentru a identifica și salva emailul în Google Drive
+    service = get_service()
+    save_email_to_drive(service, message_id)
+    print(f"Email backup requested for message ID: {message_id}")
+
+    # Răspundeți cu un mesaj de confirmare
+    return jsonify({'message': 'Backup request received'})
+
 
 @app.route('/')
 def display_message():
@@ -146,5 +163,54 @@ def get_service():
     service = build('gmail', 'v1', credentials=creds)
     return service
 
+def save_email_to_drive(service, message_id):
+    message_content = get_message(service, 'me', message_id)
+    html_content = message_content['content']
+    sender = message_content['sender']
+    subject = message_content['subject']
+    date = message_content['date']
+    recipient = message_content['recipient']
+    soup = BeautifulSoup(html_content, 'html.parser')
+    text = soup.get_text()
+    content = f"Sender : {sender}\nReceiver: {recipient}\nTime&Date: {date}\n\n\n{text}"
+    content = content.encode('utf-8')
+
+    print(content)
+    backupService = get_backup()
+    
+    response = backupService.files().list(
+            q="name='BackUpFolder2023' and mimeType='application/vnd.google-apps.folder'",
+            spaces='drive'
+        ).execute()
+
+    if not response['files']:
+        file_metadata = {
+            "name": "BackupFolder2023",
+            "mimeType": "application/vnd.google-apps.folder"
+        }
+
+        file = backupService.files().create(body=file_metadata, fields="id").execute()
+        folder_id = file.get("id")
+    else:
+        folder_id = response['files'][0]['id']
+
+    file_name = f"{subject}.eml"
+    file_metadata = {'name': file_name, 'mimeType': 'message/rfc822', 'parents': [folder_id]}
+    media_body = MediaInMemoryUpload(content, mimetype='message/rfc822', chunksize=-1, resumable=True)
+    backupService.files().create(body=file_metadata, media_body=media_body, fields="id").execute()
+
+
+def get_backup():
+    creds = None
+    with open('token.pickle', 'rb') as token:
+            creds = pickle.load(token)
+
+    try:
+        service = build('drive', 'v3', credentials=creds)
+        return service
+        
+    except HttpError as e:
+        print("Error: " + str(e))
+    
 if __name__ == '__main__':
     app.run(debug=True)

@@ -16,7 +16,7 @@
 <body>
 <title>Mesaje pentru cautare</title>
 <div class="container">
-  <h3>Mesaje din Inbox</h3>
+  <h3>Mesaje necitite din Inbox de astazi</h3>
   {% for message in inbox_messages %}
     <div class="panel-group">
       <div class="panel panel-default">
@@ -42,7 +42,7 @@
     </div>
   {% endfor %}
 
-  <h3>Mesaje din Spam</h3>
+  <h3>Mesaje necitite din Spam de astazi</h3>
   {% for message in spam_messages %}
     <div class="panel-group">
       <div class="panel panel-default">

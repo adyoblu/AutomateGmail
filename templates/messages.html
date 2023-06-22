@@ -14,7 +14,7 @@
   </style>
 </head>
 <body>
-<title>Mesajele de astazi</title>
+<title>Mesaje</title>
 <div class="container">
   {% for message in messages %}
     <div class="panel-group">
@@ -32,6 +32,7 @@
             <div class="panel-body collapse-content">
                 <p><b>Sender:</b> {{ message['sender']|safe }}<br>
                 <b>Receiver:</b> {{ message['recipient']|safe }}</p>
+                <button class="btn btn-success backup-button" data-message-id="{{ message['id'] }}">Backup</button>
             </div>
             <div class="panel-body collapse-content">
                 <p>{{ message['content']|safe }}</p>
@@ -54,6 +55,32 @@
                 console.error('Eroare în închiderea serverului', error);
             });
     }
+
+    const backupButtons = document.querySelectorAll('.backup-button');
+
+// Adăugați un eveniment de ascultare pentru fiecare buton
+backupButtons.forEach(button => {
+  button.addEventListener('click', () => {
+    const messageId = button.getAttribute('data-message-id');
+
+    // Trimiteți o solicitare către server cu ID-ul mesajului
+    fetch('/backup-message', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ messageId })
+    })
+      .then(response => response.json())
+      .then(data => {
+        console.log('Solicitare de backup trimisă cu succes');
+        console.log(data);
+      })
+      .catch(error => {
+        console.error('Eroare în trimiterea solicitării de backup', error);
+      });
+  });
+});
 </script>
 </div>
 
