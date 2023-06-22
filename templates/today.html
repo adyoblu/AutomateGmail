@@ -14,21 +14,22 @@
   </style>
 </head>
 <body>
-<title>Mesajele de astazi</title>
+<title>Mesaje pentru cautare</title>
 <div class="container">
-  {% for message in messages %}
+  <h3>Mesaje din Inbox</h3>
+  {% for message in inbox_messages %}
     <div class="panel-group">
       <div class="panel panel-default">
         <div class="panel-heading">
           <h4 class="panel-title">
-            <button type="button" class="btn btn-info" data-toggle="collapse" data-target="#demo_{{ loop.index }}">
+            <button type="button" class="btn btn-info" data-toggle="collapse" data-target="#demo_inbox_{{ loop.index }}">
               {{ message['date']|safe }}
               <br>
               {{ message['subject']|safe }}
             </button>
           </h4>
         </div>
-        <div id="demo_{{ loop.index }}" class="panel-collapse collapse">
+        <div id="demo_inbox_{{ loop.index }}" class="panel-collapse collapse">
             <div class="panel-body collapse-content">
                 <p><b>Sender:</b> {{ message['sender']|safe }}<br>
                 <b>Receiver:</b> {{ message['recipient']|safe }}</p>
@@ -40,8 +41,35 @@
       </div>
     </div>
   {% endfor %}
+
+  <h3>Mesaje din Spam</h3>
+  {% for message in spam_messages %}
+    <div class="panel-group">
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          <h4 class="panel-title">
+            <button type="button" class="btn btn-info" data-toggle="collapse" data-target="#demo_spam_{{ loop.index }}">
+              {{ message['date']|safe }}
+              <br>
+              {{ message['subject']|safe }}
+            </button>
+          </h4>
+        </div>
+        <div id="demo_spam_{{ loop.index }}" class="panel-collapse collapse">
+            <div class="panel-body collapse-content">
+                <p><b>Sender:</b> {{ message['sender']|safe }}<br>
+                <b>Receiver:</b> {{ message['recipient']|safe }}</p>
+            </div>
+            <div class="panel-body collapse-content">
+                <p>{{ message['content']|safe }}</p>
+            </div>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+
   <button class="btn btn-info" data-toggle="collapse" data-target="#demo" onclick="closeServer()">
-    Alege alta optiune din consola
+    Alege alta opțiune din consolă
   </button>
   <script>
     function closeServer() {
@@ -54,7 +82,7 @@
                 console.error('Eroare în închiderea serverului', error);
             });
     }
-</script>
+  </script>
 </div>
 
 </body>

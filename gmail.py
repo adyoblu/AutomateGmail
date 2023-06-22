@@ -1,64 +1,64 @@
-from flask import Flask, request, render_template
+import PySimpleGUI as sg
 import os.path
 import subprocess
 import webbrowser
-from datetime import datetime
-from email.mime.text import MIMEText
-from googleapiclient.discovery import build
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
-
-# autorizatie fara restrictii
-SCOPES = ['https://mail.google.com/']
-
-app = Flask(__name__, template_folder='templates')
-app.jinja_env.trim_blocks = True
-app.jinja_env.lstrip_blocks = True
 
 def display_menu():
-    print("Meniu:")
-    print("1. Afiseaza mesajele de astazi")
-    print("2. Afiseaza mesajele in functie de subiect anume")
-    print("3. Fa backup mesaje")
-    print("0. Ieșire")
-
-def handle_option(option):
-    if option == 1:
-        os.system('cls')
-        print("Ați selectat Opțiunea 1")
-        webbrowser.open("http://127.0.0.1:5000", new=0)
-        server_process = subprocess.run(['python', 'unreadMail.py'])
-
-        # Adăugați aici codul corespunzător pentru Opțiunea 1
-    elif option == 2:
-        os.system('cls')
-        print("Ați selectat Opțiunea 2")
-        search_string = input("Introduceți un string de cautat in subiecte: ")
-        print("Ați introdus:", search_string)
-        webbrowser.open("http://127.0.0.1:5000", new=0)
-        server_process = subprocess.run(['python', 'search.py', search_string])
-        
-        # Adăugați aici codul corespunzător pentru Opțiunea 2
-    elif option == 3:
-        os.system('cls')
-        print("Ați selectat Opțiunea 3")
-        # Adăugați aici codul corespunzător pentru Opțiunea 3
-    elif option == 0:
-        os.system('cls')
-        print("La revedere!")
-        return False
-    else:
-        os.system('cls')
-        print("Opțiune invalidă. Vă rugăm să selectați o opțiune validă.")
-    return True
+    layout = [
+        [sg.Button("1) Afiseaza toate mesajele de astazi(INBOX si SPAM)", key='option1')],
+        [sg.Button("2) Afiseaza mesajele in functie de subiect anume", key='option2')],
+        [sg.Button("3) Fa backup mesaje", key='option3')],
+        [sg.Button("4) Ieșire", key='option0')]
+    ]
+    
+    return sg.Window("Meniu", layout, finalize=True)
 
 def main():
+    window = display_menu()
+
     while True:
-        os.system('cls')
-        display_menu()
-        option = int(input("Introduceți opțiunea: "))
-        if not handle_option(option):
+        event, _ = window.read()
+        if event == sg.WINDOW_CLOSED or event == 'option0':
             break
+        elif event == 'option1':
+            os.system('cls')
+            window.hide()
+            layout = [
+                [sg.Text(f"Ați selectat Opțiunea 1")]
+            ]
+            option1_window = sg.Window("Opțiunea selectată", layout, finalize=True)
+            option1_window.close()
+            webbrowser.open("http://127.0.0.1:5000", new=0)
+            subprocess.run(['python', 'today.py'])
+            window.un_hide()
+            
+        elif event == 'option2':
+            os.system('cls')
+            window.hide()
+            layout = [
+                [sg.Text(f"Ați selectat Opțiunea 2")],
+                [sg.Text("Introduceți un string de căutat în subiecte: "), sg.InputText(key='search_string')],
+                [sg.Button("OK", key='ok')]
+            ]
+            option2_window = sg.Window("Opțiunea selectată", layout, finalize=True)
+            
+            while True:
+                event, values = option2_window.read()
+                
+                if event == sg.WINDOW_CLOSED or event == 'ok':
+                    break
+            
+            option2_window.close()
+            search_string = values['search_string']
+            webbrowser.open("http://127.0.0.1:5000", new=0)
+            subprocess.run(['python', 'search.py', search_string])
+            window.un_hide()
+        elif event == 'option3':
+            os.system('cls')
+            print("Ați selectat Opțiunea 3")
+            # Adăugați aici codul corespunzător pentru Opțiunea 3
+
+    window.close()
 
 if __name__ == '__main__':
     main()

@@ -27,7 +27,6 @@ search_string = sys.argv[1]
 @app.route('/close-server', methods=['POST'])
 def close_server():
     os.kill(os.getpid(), signal.SIGINT)
-
     return jsonify
 
 @app.route('/')
@@ -43,6 +42,7 @@ def display_message():
     message_ids = search_message(service, user_id, search_string)
     if not message_ids:
         return "Nu s-au găsit mesaje conform căutării."
+    
 
     message_content_list = []
     # Iterați prin fiecare ID de mesaj și obțineți conținutul mesajelor
@@ -83,8 +83,6 @@ def search_message(service, user_id, search_string):
     except errors.HttpError as error:
         print("Eroare: %s" % error)
 
-
-
 def get_message(service, user_id, msg_id):
     try:
         message = service.users().messages().get(userId=user_id, id=msg_id, format='raw').execute()
@@ -123,7 +121,6 @@ def get_message(service, user_id, msg_id):
 
     except errors.HttpError as error:
         print('A apărut o eroare: %s') % error
-
 
 
 #return va fi <googleapiclient.discovery.Resource at 0x284631d0790>
