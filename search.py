@@ -10,6 +10,7 @@ import quopri
 from email.header import decode_header
 import signal
 import os
+from googleapiclient import errors
 from email.mime.text import MIMEText
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -57,50 +58,52 @@ def display_message():
 
 def search_message(service, user_id, search_string):
     try:
-        list_ids = [] #lista cu id-uri
+        list_ids = []  # lista cu id-uri
         search_ids = service.users().messages().list(userId=user_id, q=search_string).execute()
         try:
             ids = search_ids['messages']
         except KeyError:
-            print("WARNING: cautarea a returnat 0 rezultate")
+            print("Atenție: Căutarea nu a returnat niciun rezultat.")
             return []
 
-        for msg_id in ids: # iterez prin toate
-            list_ids.append(msg_id['id']) # adaug în lista de ID-uri toate ID-urile
+        for msg_id in ids:  # iterez prin toate
+            message = service.users().messages().get(userId=user_id, id=msg_id['id']).execute()
+            subject = None
+            headers = message['payload'].get('headers')
+            if headers:
+                for header in headers:
+                    if header['name'].lower() == 'subject':
+                        subject = header['value']
+                        break
+            if subject is not None and search_string.lower() in subject.lower():
+                list_ids.append(msg_id['id'])  # adaug în lista de ID-uri toate ID-urile
+
         return list_ids
 
     except errors.HttpError as error:
-        print("Eroare: %s") % error
+        print("Eroare: %s" % error)
+
 
 
 def get_message(service, user_id, msg_id):
     try:
-        # message instance
-        message = service.users().messages().get(userId=user_id, id=msg_id,format='raw').execute()
-
-        # decode raw in ASCII
-        msg_str = base64.urlsafe_b64decode(message['raw'].encode('ASCII'))
-
-        # grab the string from the byte object
-        mime_msg = email.message_from_bytes(msg_str)
+        message = service.users().messages().get(userId=user_id, id=msg_id, format='raw').execute()
+        raw_data = message['raw']
+        msg_str = base64.urlsafe_b64decode(raw_data).decode('utf-8')
+        mime_msg = email.message_from_string(msg_str)
 
         sender = mime_msg['From']
         recipient = mime_msg['To']
         subject = mime_msg['Subject']
+        if subject is not None:
+            subject = decode_header(subject)[0][0]
+            subject = quopri.decodestring(subject).decode('utf-8', errors='replace')
 
-        # check if the content is multipart (it usually is)
-        content_type = mime_msg.get_content_maintype()
-        
-        # there will usually be 2 parts the first will be the body in text
-        # the second will be the text in html
-        parts = mime_msg.get_payload()
-
-        # return the encoded text
-        #final_content = parts[0].get_payload()
-        html_content = parts[0].get_payload(decode=True).decode('utf-8')
-        #text_content = html2text.html2text(html_content)
-        #final_content = text_content.strip()
-
+        html_content = None
+        for part in mime_msg.walk():
+            if part.get_content_type() == 'text/html':
+                html_content = part.get_payload(decode=True).decode('utf-8', errors='replace')
+                break
 
         date = mime_msg.get('Date')
         timezone = pytz.timezone("Europe/Bucharest")
@@ -108,19 +111,20 @@ def get_message(service, user_id, msg_id):
         datetime_obj = parsed_date.astimezone(timezone)
         formatted_date = datetime_obj.strftime("%Y-%m-%d %H:%M:%S")
 
-        subject = decode_header(subject)[0][0]
-
         message_data = {
             'sender': sender,
             'recipient': recipient,
-            'subject': quopri.decodestring(subject).decode('utf-8'),
+            'subject': subject,
             'date': formatted_date,
             'content': html_content
         }
+
         return message_data
 
     except errors.HttpError as error:
-        print('An error occured: %s') % error
+        print('A apărut o eroare: %s') % error
+
+
 
 #return va fi <googleapiclient.discovery.Resource at 0x284631d0790>
 def get_service():
