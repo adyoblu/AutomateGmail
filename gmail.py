@@ -19,15 +19,15 @@ def main():
             subprocess.run(['taskkill', '/F', '/IM', 'firefox.exe'])  # Închide Mozilla Firefox pe Windows
             subprocess.run(['taskkill', '/F', '/IM', 'opera.exe'])  # Închide Opera GX pe Windows
         elif platform.system() == 'Linux':
-            subprocess.run(['pkill', 'google-chrome'])  # Închide Google Chrome pe Linux
+            subprocess.run(['pkill', 'chrome'])  # Închide Google Chrome pe Linux
             subprocess.run(['pkill', 'firefox'])
             subprocess.run(['pkill', 'chromium'])
     def exit_button_clicked():
         button_clicked()
         sys.exit()  # Încheie scriptul
     # Calculează poziția x și y pentru a afișa fereastra în mijlocul ecranului
-    window_width = 600
-    window_height = 200
+    window_width = 650
+    window_height = 180
     x = int((screen_width / 2) - (window_width / 2))
     y = int((screen_height / 2) - (window_height / 2))
 
@@ -75,7 +75,7 @@ def main():
     button_font = ("Roboto", 24)
 
     option1_button = customtkinter.CTkButton(root, text="1) Afiseaza toate mesajele de astazi(INBOX si SPAM)", command=option1_clicked, font=button_font)
-    option1_button.pack(pady=20, padx=10)
+    option1_button.pack(pady=12, padx=10)
 
     option2_button = customtkinter.CTkButton(root, text="2) Afiseaza mesajele in functie de subiect anume", command=option2_clicked, font=button_font)
     option2_button.pack(pady=12, padx =10)

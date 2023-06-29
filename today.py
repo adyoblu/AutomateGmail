@@ -6,6 +6,7 @@ import email
 from datetime import datetime
 from googleapiclient.errors import HttpError
 import pytz
+import PySimpleGUI as sg
 import quopri
 import time
 from bs4 import BeautifulSoup
@@ -90,6 +91,57 @@ def display_messages():
     spam_message_content = transform_messages(spam_messages, service)
     threading.Thread(target=check_browser_status).start()
     return render_template('today.html', inbox_messages=inbox_message_content, spam_messages=spam_message_content)
+
+@app.route('/send-message', methods=['POST'])
+def send_message():
+    subject = request.json.get('subject')
+    message = request.json.get('message')
+    to = request.json.get('senderEmail')
+    service = get_service()
+    email_message = create_message(subject, message, to)
+
+    try:
+        # Send the message
+        sent_message = service.users().messages().send(userId='me', body=email_message).execute()
+        display_error_message('Message sent successfully.')
+        return sent_message
+    except Exception as e:
+        display_error_message('An error occurred while sending the message:' + str(e))
+        return None
+    
+def create_message(subject, message, to):
+    sender = 'me'
+    recipient = to
+
+    # Create the message body
+    message_body = f"Subject: {subject}\nTo: {recipient}\n\n{message}"
+
+    # Encode the message body
+    encoded_message = base64.urlsafe_b64encode(message_body.encode('utf-8')).decode('utf-8')
+
+    # Create the email message
+    email_message = {
+        'raw': encoded_message
+    }
+
+    return email_message
+
+def display_error_message(message):
+    # Funcție pentru afișarea ferestrei de eroare
+    layout = [
+        [sg.Text(message, font='Any 12')],
+        [sg.Button('Închide', key='-CLOSE-')]
+    ]
+
+    window = sg.Window('Atentionare', layout)
+    window.finalize() 
+    window.bring_to_front() 
+    while True:
+        event, values = window.read()
+        if event == sg.WINDOW_CLOSED or event == '-CLOSE-':
+            break
+
+    window.close()
 
 def get_service():
     creds = None

@@ -35,12 +35,37 @@
                 <b>Receiver:</b> {{ message['recipient']|safe }}</p>
                 <button class="btn btn-warning backup-button" data-toggle="button" aria-pressed="false" autocomplete="off" data-message-id="{{ message['id'] }}">Backup</button>
             </div>
+
+            <div class="panel-body collapse-content">
+              <button type="button" class="btn btn-primary" data-toggle="collapse" data-target="#sendCollapse_{{ loop.index }}">
+                Send Reply
+              </button>
+              <div id="sendCollapse_{{ loop.index }}" class="collapse">
+                <form id="sendMessageForm_{{ loop.index }}">
+                  <div class="form-group">
+                    <label for="sender">To:</label>
+                    <input type="text" class="form-control" id="sender_{{ loop.index }}" value="{{ message['sender']|safe }}" readonly>
+                  </div>
+                  <div class="form-group">
+                    <label for="subject">Subject:</label>
+                    <input type="text" class="form-control" id="subject_{{ loop.index }}" placeholder="Enter subject">
+                  </div>
+                  <div class="form-group">
+                    <label for="message">Message:</label>
+                    <textarea class="form-control" id="message_{{ loop.index }}" rows="5" placeholder="Enter message"></textarea>
+                  </div>
+                  <button type="button" class="btn btn-primary" onclick="sendMessage(`{{ message['id'] }}`, `{{ loop.index }}`)">Send Now</button>
+                </form>
+              </div>
+            </div>
+            
             <div class="panel-body collapse-content">
                 <p>{{ message['content']|safe }}</p>
             </div>
         </div>
       </div>
     </div>
+
   {% endfor %}
   <button class="btn btn-danger" data-toggle="collapse" data-target="#demo" onclick="closeServer()">
     Alege alta optiune
@@ -56,6 +81,32 @@
                 console.error('Eroare în închiderea serverului', error);
             });
     }
+
+
+    function sendMessage(messageId, index) {
+    const subject = document.getElementById(`subject_${index}`).value;
+    const message = document.getElementById(`message_${index}`).value;
+    const senderEmail = document.getElementById(`sender_${index}`).value;
+
+    // Send the subject, message, and senderEmail to the server
+    fetch('/send-message', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ messageId, subject, message, senderEmail })
+    })
+      .then(response => response.json())
+      .then(data => {
+        console.log('Message sent successfully');
+        console.log(data);
+      })
+      .catch(error => {
+        console.error('Error sending the message', error);
+      });
+  }
+
+
 
   const backupButtons = document.querySelectorAll('.backup-button');
 

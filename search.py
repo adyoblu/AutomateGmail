@@ -77,6 +77,39 @@ def backup_message():
     webbrowser.open(backup_link)
     return jsonify({'message': 'Backup request received'})
 
+@app.route('/send-message', methods=['POST'])
+def send_message():
+    subject = request.json.get('subject')
+    message = request.json.get('message')
+    to = request.json.get('senderEmail')
+    service = get_service()
+    email_message = create_message(subject, message, to)
+
+    try:
+        # Send the message
+        sent_message = service.users().messages().send(userId='me', body=email_message).execute()
+        display_error_message('Message sent successfully.')
+        return sent_message
+    except Exception as e:
+        display_error_message('An error occurred while sending the message:' + str(e))
+        return None
+
+def create_message(subject, message, to):
+    sender = 'me'
+    recipient = to
+
+    # Create the message body
+    message_body = f"Subject: {subject}\nTo: {recipient}\n\n{message}"
+
+    # Encode the message body
+    encoded_message = base64.urlsafe_b64encode(message_body.encode('utf-8')).decode('utf-8')
+
+    # Create the email message
+    email_message = {
+        'raw': encoded_message
+    }
+
+    return email_message
 
 @app.route('/')
 def display_message():
@@ -114,7 +147,7 @@ def display_error_message(message):
         [sg.Button('Închide', key='-CLOSE-')]
     ]
 
-    window = sg.Window('Eroare', layout)
+    window = sg.Window('Atentionare', layout)
     window.finalize() 
     window.bring_to_front() 
     while True:
