@@ -23,7 +23,7 @@ Pentru a utiliza acest proiect, urmați pașii de instalare de mai jos:
 
 `cd proiect`
 
-3. Instalează dependențele proiectului folosind comanda:\n
+3. Instalează dependențele proiectului folosind comanda:
 
 `pip install -r requirements.txt`
 
