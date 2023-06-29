@@ -11,7 +11,6 @@ from email.header import decode_header
 import signal
 import os
 import webbrowser
-import shutil
 import PySimpleGUI as sg
 from googleapiclient import errors
 from googleapiclient.discovery import build
@@ -64,7 +63,7 @@ search_string = sys.argv[1]
 @app.route('/close-server', methods=['POST'])
 def close_server():
     shutdown_server()
-    return jsonify()
+    return jsonify({'message': 'Server closed successfully'})
 
 @app.route('/backup-message', methods=['POST'])
 def backup_message():
@@ -106,8 +105,6 @@ def display_message():
         message_content_list.append(message_content)
 
     print(message_content_list)
-    # browser_thread = threading.Thread(target=check_browser_status)
-    # browser_thread.start()
     return render_template('messages.html', messages=message_content_list)
 
 def display_error_message(message):
@@ -152,6 +149,7 @@ def search_message(service, user_id, search_string):
 
     except errors.HttpError as error:
         print("Eroare: %s" % error)
+
 
 def get_message(service, user_id, msg_id):
     try:
@@ -220,15 +218,15 @@ def get_service():
     return service
 
 def save_email_to_drive(service, message_id):
-    message_content = get_message(service, 'me', message_id)
+    message_content = get_message(service, "me" ,message_id)
     html_content = message_content['content']
     sender = message_content['sender']
     subject = message_content['subject']
     date = message_content['date']
     recipient = message_content['recipient']
-    soup = BeautifulSoup(html_content, 'html.parser')
-    text = soup.get_text()
-    content = f"Sender : {sender}\nReceiver: {recipient}\nTime&Date: {date}\n\n\n{text}"
+    #soup = BeautifulSoup(html_content, 'html.parser')
+    #text = soup.get_text()
+    content = f"Sender : {sender}<br>Receiver: {recipient}<br>Time&Date: {date}<br><br><br>{html_content}"
     content = content.encode('utf-8')
     backupService = get_backup()
     
@@ -248,41 +246,15 @@ def save_email_to_drive(service, message_id):
     else:
         folder_id = response['files'][0]['id']
 
-    file_name = f"{subject}.eml"
+    file_name = f"{subject}.html"
     file_metadata = {'name': file_name, 'mimeType': 'message/rfc822', 'parents': [folder_id]}
-    media_body = MediaInMemoryUpload(content, mimetype='message/rfc822', chunksize=-1, resumable=True)
+    media_body = MediaInMemoryUpload(content, mimetype='text/html', chunksize=-1, resumable=True)
     uploaded = backupService.files().create(body=file_metadata, media_body=media_body, fields="id").execute()
 
     file_id = uploaded.get('id')
     file = backupService.files().get(fileId=file_id, fields='webViewLink').execute()
     backup_link = file.get('webViewLink')
     return backup_link
-
-# def save_email_to_drive(service, message_id):
-#     message_content = get_message(service, 'me', message_id)
-#     html_content = message_content['content']
-#     sender = message_content['sender']
-#     subject = message_content['subject']
-#     date = message_content['date']
-#     recipient = message_content['recipient']
-#     soup = BeautifulSoup(html_content, 'html.parser')
-#     text = soup.get_text()
-#     content = f"Sender: {sender}<br>Receiver: {recipient}<br>Time & Date: {date}<br><br>{html_content}"
-
-#     # Create a unique filename for the HTML file
-#     file_name = f"{subject}.html"
-
-#     # Save the HTML content to a file
-#     with open(file_name, 'w', encoding='utf-8') as file:
-#         file.write(content)
-
-#     # Move the HTML file to the desired backup folder
-#     backup_folder = 'path/to/backup/folder'  # Specify the desired backup folder path
-#     file_path = os.path.join(backup_folder, file_name)
-#     shutil.move(file_name, file_path)
-
-#     backup_link = f"File saved: {file_path}"
-#     return backup_link
 
 def get_backup():
     creds = None

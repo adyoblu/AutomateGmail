@@ -201,9 +201,9 @@ def save_email_to_drive(service, message_id):
     subject = message_content['subject']
     date = message_content['date']
     recipient = message_content['recipient']
-    soup = BeautifulSoup(html_content, 'html.parser')
-    text = soup.get_text()
-    content = f"Sender : {sender}\nReceiver: {recipient}\nTime&Date: {date}\n\n\n{text}"
+    #soup = BeautifulSoup(html_content, 'html.parser')
+    #text = soup.get_text()
+    content = f"Sender : {sender}<br>Receiver: {recipient}<br>Time&Date: {date}<br><br><br>{html_content}"
     content = content.encode('utf-8')
     backupService = get_backup()
     
@@ -223,9 +223,9 @@ def save_email_to_drive(service, message_id):
     else:
         folder_id = response['files'][0]['id']
 
-    file_name = f"{subject}.eml"
+    file_name = f"{subject}.html"
     file_metadata = {'name': file_name, 'mimeType': 'message/rfc822', 'parents': [folder_id]}
-    media_body = MediaInMemoryUpload(content, mimetype='message/rfc822', chunksize=-1, resumable=True)
+    media_body = MediaInMemoryUpload(content, mimetype='text/html', chunksize=-1, resumable=True)
     uploaded = backupService.files().create(body=file_metadata, media_body=media_body, fields="id").execute()
 
     file_id = uploaded.get('id')
