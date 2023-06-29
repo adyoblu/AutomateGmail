@@ -75,7 +75,7 @@ def backup_message():
     service = get_service()
     backup_link = save_email_to_drive(service, message_id)
     #print(f"Email backup requested for message ID: {message_id}")
-    display_error_message(f"Email backup requested for message ID: {message_id}")
+    print(f"Email backup requested for message ID: {message_id}")
 
     # Răspundeți cu un mesaj de confirmare
     webbrowser.open(backup_link)
@@ -92,7 +92,7 @@ def send_message():
     try:
         # Send the message
         sent_message = service.users().messages().send(userId='me', body=email_message).execute()
-        display_error_message('Message sent successfully.')
+        print('Message sent successfully.')
         return sent_message
     except Exception as e:
         display_error_message('An error occurred while sending the message:' + str(e))

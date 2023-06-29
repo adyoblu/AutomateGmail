@@ -19,32 +19,33 @@
 </head>
 <body>
 <title>Mesaje</title>
-<div class="container">
-  <h3>Mesaje necitite din Inbox de astazi</h3>
-  {% for message in inbox_messages %}
-    <div class="panel-group">
-      <div class="panel panel-default">
-        <div class="panel-heading">
-          <h4 class="panel-title custom-title">
-            <button type="button" class="btn btn-primary" data-toggle="collapse" data-target="#demo_inbox_{{ loop.index }}">
-              {{ message['date']|safe }}
-              <br>
-              {{ message['subject']|safe }}
-            </button>
-          </h4>
-        </div>
-        <div id="demo_inbox_{{ loop.index }}" class="panel-collapse collapse">
+<body>
+  <div class="container">
+    <h3>Mesaje necitite din Inbox de astazi</h3>
+    {% for message in inbox_messages %}
+      <div class="panel-group">
+        <div class="panel panel-default">
+          <div class="panel-heading">
+            <h4 class="panel-title custom-title">
+              <button type="button" class="btn btn-primary" data-toggle="collapse" data-target="#demo_inbox_{{ loop.index }}">
+                {{ message['date']|safe }}
+                <br>
+                {{ message['subject']|safe }}
+              </button>
+            </h4>
+          </div>
+          <div id="demo_inbox_{{ loop.index }}" class="panel-collapse collapse">
             <div class="panel-body collapse-content">
-                <p><b>Sender:</b> {{ message['sender']|safe }}<br>
-                <b>Receiver:</b> {{ message['recipient']|safe }}</p>
-                <button class="btn btn-warning backup-button" data-toggle="button" aria-pressed="false" autocomplete="off" data-message-id="{{ message['id'] }}">Backup</button>
+              <p><b>Sender:</b> {{ message['sender']|safe }}<br>
+              <b>Receiver:</b> {{ message['recipient']|safe }}</p>
+              <button class="btn btn-warning backup-button" data-toggle="button" aria-pressed="false" autocomplete="off" data-message-id="{{ message['id'] }}">Backup</button>
             </div>
 
             <div class="panel-body collapse-content">
-              <button type="button" class="btn btn-primary" data-toggle="collapse" data-target="#sendCollapse_{{ loop.index }}">
-                Send Reply
+              <button type="button" class="btn btn-primary" data-toggle="collapse" data-target="#sendCollapse_inbox{{ loop.index }}">
+                Send Message
               </button>
-              <div id="sendCollapse_{{ loop.index }}" class="collapse">
+              <div id="sendCollapse_inbox{{ loop.index }}" class="collapse">
                 <form id="sendMessageForm_{{ loop.index }}">
                   <div class="form-group">
                     <label for="sender">To:</label>
@@ -58,54 +59,52 @@
                     <label for="message">Message:</label>
                     <textarea class="form-control" id="message_{{ loop.index }}" rows="5" placeholder="Enter message"></textarea>
                   </div>
-                  <button type="button" class="btn btn-primary" onclick="sendMessage(`{{ message['id'] }}`, `{{ loop.index }}`)">Send Now</button>
+                  <button type="button" class="btn btn-primary" onclick="sendMessage('{{ message[id] }}', '{{ loop.index }}')">Send Now</button>
                 </form>
               </div>
             </div>
 
             <div class="panel-body collapse-content">
-                <p>{{ message['content']|safe }}</p>
-
-                {% if message['attachments'] %}
+              <p>{{ message['content']|safe }}</p>
+              {% if message['attachments'] %}
                 <p><b>Attachments:</b></p>
                 <ul>
-                    {% for attachment in message['attachments'] %}
-                        <li><a href="{{ attachment['url'] }}">{{ attachment['filename'] }}</a></li>
-                    {% endfor %}
+                  {% for attachment in message['attachments'] %}
+                    <li><a href="{{ attachment['url'] }}">{{ attachment['filename'] }}</a></li>
+                  {% endfor %}
                 </ul>
-                {% endif %}
-
+              {% endif %}
             </div>
+          </div>
         </div>
       </div>
-    </div>
-  {% endfor %}
+    {% endfor %}
 
-  <h3>Mesaje necitite din Spam de astazi</h3>
-  {% for message in spam_messages %}
-    <div class="panel-group">
-      <div class="panel panel-default">
-        <div class="panel-heading">
-          <h4 class="panel-title">
-            <button type="button" class="btn btn-primary" data-toggle="collapse" data-target="#demo_spam_{{ loop.index }}">
-              {{ message['date']|safe }}
-              <br>
-              {{ message['subject']|safe }}
-            </button>
-          </h4>
-        </div>
-        <div id="demo_spam_{{ loop.index }}" class="panel-collapse collapse">
+    <h3>Mesaje necitite din Spam de astazi</h3>
+    {% for message in spam_messages %}
+      <div class="panel-group">
+        <div class="panel panel-default">
+          <div class="panel-heading">
+            <h4 class="panel-title">
+              <button type="button" class="btn btn-primary" data-toggle="collapse" data-target="#demo_spam_{{ loop.index }}">
+                {{ message['date']|safe }}
+                <br>
+                {{ message['subject']|safe }}
+              </button>
+            </h4>
+          </div>
+          <div id="demo_spam_{{ loop.index }}" class="panel-collapse collapse">
             <div class="panel-body collapse-content">
-                <p><b>Sender:</b> {{ message['sender']|safe }}<br>
-                <b>Receiver:</b> {{ message['recipient']|safe }}</p>
-                <button class="btn btn-warning backup-button" data-toggle="button" aria-pressed="false" autocomplete="off" data-message-id="{{ message['id'] }}">Backup</button>
+              <p><b>Sender:</b> {{ message['sender']|safe }}<br>
+              <b>Receiver:</b> {{ message['recipient']|safe }}</p>
+              <button class="btn btn-warning backup-button" data-toggle="button" aria-pressed="false" autocomplete="off" data-message-id="{{ message['id'] }}">Backup</button>
             </div>
 
             <div class="panel-body collapse-content">
-              <button type="button" class="btn btn-primary" data-toggle="collapse" data-target="#sendCollapse_{{ loop.index }}">
+              <button type="button" class="btn btn-primary" data-toggle="collapse" data-target="#sendCollapse_spam{{ loop.index }}">
                 Send Reply
               </button>
-              <div id="sendCollapse_{{ loop.index }}" class="collapse">
+              <div id="sendCollapse_spam{{ loop.index }}" class="collapse">
                 <form id="sendMessageForm_{{ loop.index }}">
                   <div class="form-group">
                     <label for="sender">To:</label>
@@ -119,74 +118,112 @@
                     <label for="message">Message:</label>
                     <textarea class="form-control" id="message_{{ loop.index }}" rows="5" placeholder="Enter message"></textarea>
                   </div>
-                  <button type="button" class="btn btn-primary" onclick="sendMessage(`{{ message['id'] }}`, `{{ loop.index }}`)">Send Now</button>
+                  <button type="button" class="btn btn-primary" onclick="sendMessage('{{ message[id] }}', '{{ loop.index }}')">Send Now</button>
                 </form>
               </div>
             </div>
 
             <div class="panel-body collapse-content">
-                <p>{{ message['content']|safe }}</p>
-
-            {% if message['attachments'] %}
+              <p>{{ message['content']|safe }}</p>
+              {% if message['attachments'] %}
                 <p><b>Attachments:</b></p>
                 <ul>
-                    {% for attachment in message['attachments'] %}
-                        <li><a href="{{ attachment['url'] }}">{{ attachment['filename'] }}</a></li>
-                    {% endfor %}
+                  {% for attachment in message['attachments'] %}
+                    <li><a href="{{ attachment['url'] }}">{{ attachment['filename'] }}</a></li>
+                  {% endfor %}
                 </ul>
-            {% endif %}
-
+              {% endif %}
             </div>
+          </div>
         </div>
       </div>
-    </div>
     {% endfor %}
     <button class="btn btn-danger" data-toggle="collapse" data-target="#demo" onclick="closeServer()">
       Alege alta optiune
     </button>
+  </div>
+    
+
+    <div id="successModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="successModalLabel">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+            <h4 class="modal-title" id="successModalLabel">Success!</h4>
+          </div>
+          <div class="modal-body">
+            Message sent successfully.
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="backupModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="backupModalLabel">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+            <h4 class="modal-title" id="backupModalLabel">Backup Successful!</h4>
+          </div>
+          <div class="modal-body">
+            Message backup completed successfully.
+          </div>
+        </div>
+      </div>
+    </div>
     <script>
-        function closeServer() {
-        fetch('/close-server', { method: 'POST' })
-            .then(response => response.json())
-            .then(data => {
-                console.log(data.message);
-            })
-            .catch(error => {
-                console.error('Eroare în închiderea serverului', error);
-            });
-        }
-
-      function sendMessage(messageId, index) {
-        const subject = document.getElementById(`subject_${index}`).value;
-        const message = document.getElementById(`message_${index}`).value;
-        const senderEmail = document.getElementById(`sender_${index}`).value;
-
-        // Send the subject, message, and senderEmail to the server
-        fetch('/send-message', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ messageId, subject, message, senderEmail })
+    function closeServer() {
+    fetch('/close-server', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            console.log(data.message);
         })
-          .then(response => response.json())
-          .then(data => {
-            console.log('Message sent successfully');
-            console.log(data);
-          })
-          .catch(error => {
-            console.error('Error sending the message', error);
-          });
-      }
+        .catch(error => {
+            console.error('Eroare în închiderea serverului', error);
+        });
+    }
+        
+    function showSuccessModal() {
+      $('#successModal').modal('show');
+      $('html, body').animate({ scrollTop: 0 }, 'slow');
+    }
 
-      const backupButtons = document.querySelectorAll('.backup-button');
+    function showBackupModal() {
+      $('#backupModal').modal('show');
+      $('html, body').animate({ scrollTop: 0 }, 'slow');
+    }
+    
 
-      // Adăugați un eveniment de ascultare pentru fiecare buton
-      backupButtons.forEach(button => {
-      button.addEventListener('click', () => {
-      const messageId = button.getAttribute('data-message-id');
+    function sendMessage(messageId, index) {
+      const subject = document.getElementById(`subject_${index}`).value;
+      const message = document.getElementById(`message_${index}`).value;
+      const senderEmail = document.getElementById(`sender_${index}`).value;
 
-      // Trimiteți o solicitare către server cu ID-ul mesajului
+      // Send the subject, message, and senderEmail to the server
+      fetch('/send-message', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ messageId, subject, message, senderEmail })
+      })
+        .then(response => {
+          if (response.status === 200) {
+            showSuccessModal();
+          } else {
+            console.error('Error sending the message. Status code:', response.status);
+          }
+        })
+        .catch(error => {
+          console.error('Error sending the message', error);
+        });
+    }
+
+    function backupMessage(messageId) {
+      // Send a request to the server with the message ID for backup
       fetch('/backup-message', {
         method: 'POST',
         headers: {
@@ -194,16 +231,27 @@
         },
         body: JSON.stringify({ messageId })
       })
-        .then(response => response.json())
-        .then(data => {
-          console.log('Solicitare de backup trimisă cu succes');
-          console.log(data);
+        .then(response => {
+          if (response.status === 200) {
+            showBackupModal();
+          } else {
+            console.error('Error backing up the message. Status code:', response.status);
+          }
         })
         .catch(error => {
-          console.error('Eroare în trimiterea solicitării de backup', error);
+          console.error('Error backing up the message', error);
         });
+    }
+
+    const backupButtons = document.querySelectorAll('.backup-button');
+
+    // Add an event listener for each button
+    backupButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        const messageId = button.getAttribute('data-message-id');
+        backupMessage(messageId);
       });
-      });
+    });
 
 </script>
 </div>

@@ -49,7 +49,7 @@ def check_browser_status():
         
         process = subprocess.run(command, shell=True, capture_output=True, text=True)
         output = process.stdout
-        print(output)
+        #print(output)
         lines = output.split('\n') # o sa mai avem un rand in lines datorita \n 
         #o sa mai avem un rand in lines datorita si subproces-ului pe care il rulam
         num_processes = len(lines) - 2  # Subtract 2 to exclude the empty last line and the subprocess 
@@ -72,7 +72,7 @@ def backup_message():
     service = get_service()
     backup_link = save_email_to_drive(service, message_id)
     #print(f"Email backup requested for message ID: {message_id}")
-    display_error_message(f"Email backup requested for message ID: {message_id}")
+    print(f"Email backup requested for message ID: {message_id}")
 
     # Răspundeți cu un mesaj de confirmare
     webbrowser.open(backup_link)
@@ -108,7 +108,7 @@ def send_message():
     try:
         # Send the message
         sent_message = service.users().messages().send(userId='me', body=email_message).execute()
-        display_error_message('Message sent successfully.')
+        print('Message sent successfully.')
         return sent_message
     except Exception as e:
         display_error_message('An error occurred while sending the message:' + str(e))
@@ -132,7 +132,6 @@ def create_message(subject, message, to):
     return email_message
 
 def display_error_message(message):
-    # Funcție pentru afișarea ferestrei de eroare
     layout = [
         [sg.Text(message, font='Any 12')],
         [sg.Button('Închide', key='-CLOSE-')]

@@ -38,7 +38,7 @@
 
             <div class="panel-body collapse-content">
               <button type="button" class="btn btn-primary" data-toggle="collapse" data-target="#sendCollapse_{{ loop.index }}">
-                Send Reply
+                Send Message
               </button>
               <div id="sendCollapse_{{ loop.index }}" class="collapse">
                 <form id="sendMessageForm_{{ loop.index }}">
@@ -82,6 +82,36 @@
   <button class="btn btn-danger" data-toggle="collapse" data-target="#demo" onclick="closeServer()">
     Alege alta optiune
   </button>
+  <div id="successModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="successModalLabel">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+          <h4 class="modal-title" id="successModalLabel">Success!</h4>
+        </div>
+        <div class="modal-body">
+          Message sent successfully.
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="backupModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="backupModalLabel">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+          <h4 class="modal-title" id="backupModalLabel">Backup Successful!</h4>
+        </div>
+        <div class="modal-body">
+          Message backup completed successfully.
+        </div>
+      </div>
+    </div>
+  </div>
   <script>
     function closeServer() {
         fetch('/close-server', { method: 'POST' })
@@ -94,59 +124,71 @@
             });
     }
 
+    function showSuccessModal() {
+      $('#successModal').modal('show');
+      $('html, body').animate({ scrollTop: 0 }, 'slow');
+    }
+
+    function showBackupModal() {
+      $('#backupModal').modal('show');
+      $('html, body').animate({ scrollTop: 0 }, 'slow');
+    }
 
     function sendMessage(messageId, index) {
-    const subject = document.getElementById(`subject_${index}`).value;
-    const message = document.getElementById(`message_${index}`).value;
-    const senderEmail = document.getElementById(`sender_${index}`).value;
+      const subject = document.getElementById(`subject_${index}`).value;
+      const message = document.getElementById(`message_${index}`).value;
+      const senderEmail = document.getElementById(`sender_${index}`).value;
 
-    // Send the subject, message, and senderEmail to the server
-    fetch('/send-message', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ messageId, subject, message, senderEmail })
-    })
-      .then(response => response.json())
-      .then(data => {
-        console.log('Message sent successfully');
-        console.log(data);
+      // Send the subject, message, and senderEmail to the server
+      fetch('/send-message', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ messageId, subject, message, senderEmail })
       })
-      .catch(error => {
-        console.error('Error sending the message', error);
+        .then(response => {
+          if (response.status === 200) {
+            showSuccessModal();
+          } else {
+            console.error('Error sending the message. Status code:', response.status);
+          }
+        })
+        .catch(error => {
+          console.error('Error sending the message', error);
+        });
+    }
+
+    function backupMessage(messageId) {
+      // Send a request to the server with the message ID for backup
+      fetch('/backup-message', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ messageId })
+      })
+        .then(response => {
+          if (response.status === 200) {
+            showBackupModal();
+          } else {
+            console.error('Error backing up the message. Status code:', response.status);
+          }
+        })
+        .catch(error => {
+          console.error('Error backing up the message', error);
+        });
+    }
+
+    const backupButtons = document.querySelectorAll('.backup-button');
+
+    // Add an event listener for each button
+    backupButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        const messageId = button.getAttribute('data-message-id');
+        backupMessage(messageId);
       });
-  }
-
-
-
-  const backupButtons = document.querySelectorAll('.backup-button');
-
-  // Adăugați un eveniment de ascultare pentru fiecare buton
-  backupButtons.forEach(button => {
-  button.addEventListener('click', () => {
-  const messageId = button.getAttribute('data-message-id');
-
-  // Trimiteți o solicitare către server cu ID-ul mesajului
-  fetch('/backup-message', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ messageId })
-  })
-    .then(response => response.json())
-    .then(data => {
-      console.log('Solicitare de backup trimisă cu succes');
-      console.log(data);
-    })
-    .catch(error => {
-      console.error('Eroare în trimiterea solicitării de backup', error);
     });
-  });
-  });
-
-
   </script>
 </div>
 
