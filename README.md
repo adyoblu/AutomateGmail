@@ -17,11 +17,11 @@ Pentru a utiliza acest proiect, urmați pașii de instalare de mai jos:
 
 1. Clonează acest repository folosind comanda:
 
-`git clone https://github.com/utilizator/proiect.git`
+`https://github.com/adyoblu/AutomateGmail.git`
 
 2. Navighează în directorul proiectului:
 
-`cd proiect`
+`cd AutomateGmail`
 
 3. Instalează dependențele proiectului folosind comanda:
 
