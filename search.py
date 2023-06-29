@@ -3,7 +3,6 @@ import pickle
 import os.path
 from apiclient import errors
 import email
-from datetime import datetime
 import pytz
 import sys
 import quopri
@@ -12,32 +11,63 @@ from email.header import decode_header
 import signal
 import os
 import webbrowser
+import PySimpleGUI as sg
 from googleapiclient import errors
-from email.mime.text import MIMEText
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient.errors import HttpError
+import threading
+import subprocess
+import time
 from googleapiclient.http import MediaInMemoryUpload
 import base64
 
 # autorizatie fara restrictii
 SCOPES = ['https://mail.google.com/', 'https://www.googleapis.com/auth/drive']
-
 app = Flask(__name__, template_folder='templates')
 
+
+def shutdown_server():
+    command = 'ps aux | grep "python3 search.py"'
+    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+    output = process.communicate()[0].decode()
+    
+    lines = output.split('\n')
+    for line in lines:
+        if "python3 search.py" in line:
+            fields = line.split()
+            if len(fields) >= 2:
+                pid = fields[1]
+                # Close the server by killing the process with the obtained PID
+                subprocess.call(['kill', '-9', pid])
+                print(f"Closed server process with PID: {pid}")
+    
+def check_browser_status():
+    while True:
+        command = 'ps aux | grep -E "chromium.*127.0.0.1:5000"'
+        
+        process = subprocess.run(command, shell=True, capture_output=True, text=True)
+        output = process.stdout
+        lines = output.split('\n') # o sa mai avem un rand in lines datorita \n 
+        #o sa mai avem un rand in lines datorita si subproces-ului pe care il rulam
+        num_processes = len(lines) - 2  # Subtract 2 to exclude the empty last line and the subprocess 
+        #print(num_processes)
+        if num_processes < 2:
+            shutdown_server()
+            break
+        time.sleep(1)
+   
 search_string = sys.argv[1]
 
 @app.route('/close-server', methods=['POST'])
 def close_server():
-    os.kill(os.getpid(), signal.SIGINT)
-    return jsonify
-
+    shutdown_server()
+    return jsonify()
 
 @app.route('/backup-message', methods=['POST'])
 def backup_message():
     message_id = request.json['messageId']
-    # Realizați operațiunile de backup aici
     # Puteți folosi message_id pentru a identifica și salva emailul în Google Drive
     service = get_service()
     backup_link = save_email_to_drive(service, message_id)
@@ -51,7 +81,7 @@ def backup_message():
 @app.route('/')
 def display_message():
     service = get_service()
-
+    
     # Definiți ID-ul utilizatorului (adresa de e-mail)
     user_id = 'me'
     # Definiți șirul de căutare pentru mesaje
@@ -60,8 +90,11 @@ def display_message():
     # Apelați funcția search_message pentru a obține lista de ID-uri ale mesajelor căutate
     message_ids = search_message(service, user_id, search_string)
     if not message_ids:
-        return "Nu s-au găsit mesaje conform căutării."
-    
+        error_message = 'Nu există mesaje cu acest subiect. Încercați o altă opțiune!'
+        display_error_message(error_message)
+        os.kill(os.getpid(), signal.SIGINT)
+        close_server()
+        return
 
     message_content_list = []
     # Iterați prin fiecare ID de mesaj și obțineți conținutul mesajelor
@@ -70,10 +103,28 @@ def display_message():
         message_content['id'] = msg_id
         print(message_content)
         message_content_list.append(message_content)
-    
+
     print(message_content_list)
+    # browser_thread = threading.Thread(target=check_browser_status)
+    # browser_thread.start()
     return render_template('messages.html', messages=message_content_list)
 
+def display_error_message(message):
+    # Funcție pentru afișarea ferestrei de eroare
+    layout = [
+        [sg.Text(message, font='Any 12')],
+        [sg.Button('Închide', key='-CLOSE-')]
+    ]
+
+    window = sg.Window('Eroare', layout)
+    window.finalize() 
+    window.bring_to_front() 
+    while True:
+        event, values = window.read()
+        if event == sg.WINDOW_CLOSED or event == '-CLOSE-':
+            break
+
+    window.close()
 
 def search_message(service, user_id, search_string):
     try:
@@ -82,7 +133,6 @@ def search_message(service, user_id, search_string):
         try:
             ids = search_ids['messages']
         except KeyError:
-            print("Atenție: Căutarea nu a returnat niciun rezultat.")
             return []
 
         for msg_id in ids:  # iterez prin toate
@@ -128,7 +178,7 @@ def get_message(service, user_id, msg_id):
         timezone = pytz.timezone("Europe/Bucharest")
         parsed_date = email.utils.parsedate_to_datetime(date)
         datetime_obj = parsed_date.astimezone(timezone)
-        formatted_date = datetime_obj.strftime("%Y-%m-%d %H:%M:%S")
+        formatted_date = datetime_obj.strftime("%d-%m-%Y %H:%M:%S")
 
         message_data = {
             'sender': sender_name,
@@ -153,7 +203,7 @@ def get_service():
         with open('token.pickle', 'rb') as token:
             creds = pickle.load(token)
 
-    # Daca credentialele nu sunt valide, user-ul se logheaza
+    # Daca credentialele nu sunt valide
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
@@ -164,6 +214,7 @@ def get_service():
         # Salvez credentiale pentru data viitoare
         with open('token.pickle', 'wb') as token:
             pickle.dump(creds, token)
+
     service = build('gmail', 'v1', credentials=creds)
     return service
 
@@ -219,4 +270,6 @@ def get_backup():
         print("Error: " + str(e))
     
 if __name__ == '__main__':
+    browser_thread = threading.Thread(target=check_browser_status)
+    browser_thread.start()
     app.run(debug=True)

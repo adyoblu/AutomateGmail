@@ -7,22 +7,26 @@
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
   <style>
     .collapse-content {
-      max-height: 800px;
+      max-height: 600px;
       overflow-y: auto;
-      display: inline-flex;
+      display: block;
     }
+
+    .custom-title {
+    text-align: left !important;
+  }
   </style>
 </head>
 <body>
-<title>Mesaje pentru cautare</title>
+<title>Mesaje</title>
 <div class="container">
   <h3>Mesaje necitite din Inbox de astazi</h3>
   {% for message in inbox_messages %}
     <div class="panel-group">
       <div class="panel panel-default">
         <div class="panel-heading">
-          <h4 class="panel-title">
-            <button type="button" class="btn btn-info" data-toggle="collapse" data-target="#demo_inbox_{{ loop.index }}">
+          <h4 class="panel-title custom-title">
+            <button type="button" class="btn btn-primary" data-toggle="collapse" data-target="#demo_inbox_{{ loop.index }}">
               {{ message['date']|safe }}
               <br>
               {{ message['subject']|safe }}
@@ -33,6 +37,7 @@
             <div class="panel-body collapse-content">
                 <p><b>Sender:</b> {{ message['sender']|safe }}<br>
                 <b>Receiver:</b> {{ message['recipient']|safe }}</p>
+                <button class="btn btn-warning backup-button" data-toggle="button" aria-pressed="false" autocomplete="off" data-message-id="{{ message['id'] }}">Backup</button>
             </div>
             <div class="panel-body collapse-content">
                 <p>{{ message['content']|safe }}</p>
@@ -48,7 +53,7 @@
       <div class="panel panel-default">
         <div class="panel-heading">
           <h4 class="panel-title">
-            <button type="button" class="btn btn-info" data-toggle="collapse" data-target="#demo_spam_{{ loop.index }}">
+            <button type="button" class="btn btn-primary" data-toggle="collapse" data-target="#demo_spam_{{ loop.index }}">
               {{ message['date']|safe }}
               <br>
               {{ message['subject']|safe }}
@@ -59,6 +64,7 @@
             <div class="panel-body collapse-content">
                 <p><b>Sender:</b> {{ message['sender']|safe }}<br>
                 <b>Receiver:</b> {{ message['recipient']|safe }}</p>
+                <button class="btn btn-warning backup-button" data-toggle="button" aria-pressed="false" autocomplete="off" data-message-id="{{ message['id'] }}">Backup</button>
             </div>
             <div class="panel-body collapse-content">
                 <p>{{ message['content']|safe }}</p>
@@ -66,24 +72,51 @@
         </div>
       </div>
     </div>
-  {% endfor %}
+    {% endfor %}
+    <button class="btn btn-danger" data-toggle="collapse" data-target="#demo" onclick="closeServer()">
+      Alege alta optiune
+    </button>
+    <script>
+      function closeServer() {
+      fetch('/close-server', { method: 'POST' })
+          .then(response => response.json())
+          .then(data => {
+              console.log(data.message);
+          })
+          .catch(error => {
+              console.error('Eroare în închiderea serverului', error);
+          });
+      }
 
-  <button class="btn btn-info" data-toggle="collapse" data-target="#demo" onclick="closeServer()">
-    Alege alta opțiune
-  </button>
-  <script>
-    function closeServer() {
-        fetch('/close-server', { method: 'POST' })
-            .then(response => response.json())
-            .then(data => {
-                console.log(data.message);
-            })
-            .catch(error => {
-                console.error('Eroare în închiderea serverului', error);
-            });
-    }
-  </script>
+      const backupButtons = document.querySelectorAll('.backup-button');
+
+      // Adăugați un eveniment de ascultare pentru fiecare buton
+      backupButtons.forEach(button => {
+      button.addEventListener('click', () => {
+      const messageId = button.getAttribute('data-message-id');
+
+      // Trimiteți o solicitare către server cu ID-ul mesajului
+      fetch('/backup-message', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ messageId })
+      })
+        .then(response => response.json())
+        .then(data => {
+          console.log('Solicitare de backup trimisă cu succes');
+          console.log(data);
+        })
+        .catch(error => {
+          console.error('Eroare în trimiterea solicitării de backup', error);
+        });
+      });
+      });
+
+</script>
 </div>
 
 </body>
 </html>
+

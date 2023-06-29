@@ -14,8 +14,9 @@
   </style>
 </head>
 <body>
-<title>Mesaje</title>
+<title>Mesaje pentru cautare</title>
 <div class="container">
+  <h3>Mesaje</h3>
   {% for message in messages %}
     <div class="panel-group">
       <div class="panel panel-default">
@@ -46,42 +47,44 @@
   </button>
   <script>
     function closeServer() {
-        fetch('/close-server', { method: 'POST' })
-            .then(response => response.json())
-            .then(data => {
-                console.log(data.message);
-            })
-            .catch(error => {
-                console.error('Eroare în închiderea serverului', error);
-            });
+    fetch('/close-server', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            console.log(data.message);
+        })
+        .catch(error => {
+            console.error('Eroare în închiderea serverului', error);
+        });
     }
 
-    const backupButtons = document.querySelectorAll('.backup-button');
+  const backupButtons = document.querySelectorAll('.backup-button');
 
-// Adăugați un eveniment de ascultare pentru fiecare buton
-backupButtons.forEach(button => {
+  // Adăugați un eveniment de ascultare pentru fiecare buton
+  backupButtons.forEach(button => {
   button.addEventListener('click', () => {
-    const messageId = button.getAttribute('data-message-id');
+  const messageId = button.getAttribute('data-message-id');
 
-    // Trimiteți o solicitare către server cu ID-ul mesajului
-    fetch('/backup-message', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ messageId })
+  // Trimiteți o solicitare către server cu ID-ul mesajului
+  fetch('/backup-message', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ messageId })
+  })
+    .then(response => response.json())
+    .then(data => {
+      console.log('Solicitare de backup trimisă cu succes');
+      console.log(data);
     })
-      .then(response => response.json())
-      .then(data => {
-        console.log('Solicitare de backup trimisă cu succes');
-        console.log(data);
-      })
-      .catch(error => {
-        console.error('Eroare în trimiterea solicitării de backup', error);
-      });
+    .catch(error => {
+      console.error('Eroare în trimiterea solicitării de backup', error);
+    });
   });
-});
-</script>
+  });
+
+
+  </script>
 </div>
 
 </body>
