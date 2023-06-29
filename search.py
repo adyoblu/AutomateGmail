@@ -5,7 +5,10 @@ from apiclient import errors
 import email
 import pytz
 import sys
+import io
+import requests
 import quopri
+import zipfile
 from bs4 import BeautifulSoup
 from email.header import decode_header
 import signal
@@ -51,7 +54,7 @@ def check_browser_status():
         output = num_processes.stdout.strip()  # Remove leading/trailing whitespace
         num_processes = int(output)  # Convert to integer
         
-        print(num_processes)
+        #print(num_processes)
         
         if num_processes < 1:
             shutdown_server()
@@ -71,7 +74,8 @@ def backup_message():
     # Puteți folosi message_id pentru a identifica și salva emailul în Google Drive
     service = get_service()
     backup_link = save_email_to_drive(service, message_id)
-    print(f"Email backup requested for message ID: {message_id}")
+    #print(f"Email backup requested for message ID: {message_id}")
+    display_error_message(f"Email backup requested for message ID: {message_id}")
 
     # Răspundeți cu un mesaj de confirmare
     webbrowser.open(backup_link)
@@ -134,10 +138,10 @@ def display_message():
     for msg_id in message_ids :
         message_content = get_message(service, user_id, msg_id)
         message_content['id'] = msg_id
-        print(message_content)
+        #print(message_content)
         message_content_list.append(message_content)
 
-    print(message_content_list)
+    #print(message_content_list)
     return render_template('messages.html', messages=message_content_list)
 
 def display_error_message(message):
@@ -183,6 +187,24 @@ def search_message(service, user_id, search_string):
     except errors.HttpError as error:
         print("Eroare: %s" % error)
 
+def upload_attachment_to_anonfiles(attachment):
+    filename = attachment['filename']
+    data = attachment['data']
+    
+    # Create a file-like object from the attachment data
+    file_data = io.BytesIO(data)
+    
+    # Make a POST request to anonfiles.com API for file upload
+    response = requests.post('https://api.anonfiles.com/upload', files={'file': (filename, file_data)})
+    
+    if response.status_code == 200:
+        # Parse the JSON response
+        json_response = response.json()
+        if json_response['status']:
+            file_url = json_response['data']['file']['url']['short']
+            return file_url
+    
+    return None
 
 def get_message(service, user_id, msg_id):
     try:
@@ -201,11 +223,22 @@ def get_message(service, user_id, msg_id):
             subject = quopri.decodestring(subject).decode('utf-8', errors='replace')
 
         html_content = None
+        attachments = []
+        attach_drive =  []
+
         for part in mime_msg.walk():
             if part.get_content_type() == 'text/html':
                 html_content = part.get_payload(decode=True).decode('utf-8', errors='replace')
-                break
-
+            elif part.get_content_type().startswith('application/') or part.get_content_type().startswith('image/') or part.get_content_type().startswith('audio/') or part.get_content_type().startswith('video/'):
+                attachment = {
+                    'filename': part.get_filename(),
+                    'content_type': part.get_content_type(),
+                    'data': part.get_payload(decode=True)
+                }
+                saved_attach = upload_attachment_to_anonfiles(attachment)
+                attach_drive.append(attachment)
+                if saved_attach:
+                    attachments.append({'filename': attachment['filename'], 'url': saved_attach})
         date = mime_msg.get('Date')
         timezone = pytz.timezone("Europe/Bucharest")
         parsed_date = email.utils.parsedate_to_datetime(date)
@@ -217,7 +250,9 @@ def get_message(service, user_id, msg_id):
             'recipient': receiver_name,
             'subject': subject,
             'date': formatted_date,
-            'content': html_content
+            'content': html_content,
+            'attachments': attachments,
+            'attach_drive': attach_drive
         }
 
         return message_data
@@ -257,10 +292,11 @@ def save_email_to_drive(service, message_id):
     subject = message_content['subject']
     date = message_content['date']
     recipient = message_content['recipient']
+    attachments = message_content['attach_drive']
     #soup = BeautifulSoup(html_content, 'html.parser')
     #text = soup.get_text()
-    content = f"Sender : {sender}<br>Receiver: {recipient}<br>Time&Date: {date}<br><br><br>{html_content}"
-    content = content.encode('utf-8')
+    content = f"Sender : {sender}<br>Receiver: {recipient}<br>Time&Date: {date}<br><br><br>{html_content}<br>"
+
     backupService = get_backup()
     
     response = backupService.files().list(
@@ -279,10 +315,27 @@ def save_email_to_drive(service, message_id):
     else:
         folder_id = response['files'][0]['id']
 
-    file_name = f"{subject}.html"
-    file_metadata = {'name': file_name, 'mimeType': 'message/rfc822', 'parents': [folder_id]}
-    media_body = MediaInMemoryUpload(content, mimetype='text/html', chunksize=-1, resumable=True)
-    uploaded = backupService.files().create(body=file_metadata, media_body=media_body, fields="id").execute()
+    # file_name = f"{subject}.html"
+    # file_metadata = {'name': file_name, 'mimeType': 'message/rfc822', 'parents': [folder_id]}
+    # media_body = MediaInMemoryUpload(content, mimetype='text/html', chunksize=-1, resumable=True)
+    # uploaded = backupService.files().create(body=file_metadata, media_body=media_body, fields="id").execute()
+
+    zip_buffer = io.BytesIO()
+    
+    # Create a ZIP file object
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        # Add the HTML file to the ZIP
+        zip_file.writestr(f"{subject}.html", content)
+        
+        # Add attachments to the ZIP
+        for attachment in attachments:
+            filename = attachment['filename']
+            data = attachment['data']
+            zip_file.writestr(filename, data)
+
+    media_body = MediaInMemoryUpload(zip_buffer.getvalue(), mimetype='application/zip', chunksize=-1, resumable=True)
+    file_metadata = {'name': f"{subject}.zip", 'parents': [folder_id]}
+    uploaded = backupService.files().create(body=file_metadata, media_body=media_body, fields='id').execute()
 
     file_id = uploaded.get('id')
     file = backupService.files().get(fileId=file_id, fields='webViewLink').execute()

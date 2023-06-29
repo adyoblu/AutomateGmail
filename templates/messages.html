@@ -61,6 +61,18 @@
             
             <div class="panel-body collapse-content">
                 <p>{{ message['content']|safe }}</p>
+
+
+            {% if message['attachments'] %}
+                <p><b>Attachments:</b></p>
+                <ul>
+                    {% for attachment in message['attachments'] %}
+                        <li><a href="{{ attachment['url'] }}">{{ attachment['filename'] }}</a></li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+            
+
             </div>
         </div>
       </div>

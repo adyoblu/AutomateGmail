@@ -11,6 +11,9 @@ import quopri
 import time
 from bs4 import BeautifulSoup
 import webbrowser
+import requests
+import io
+import zipfile
 from email.header import decode_header
 import os
 import subprocess
@@ -67,7 +70,8 @@ def backup_message():
     # Puteți folosi message_id pentru a identifica și salva emailul în Google Drive
     service = get_service()
     backup_link = save_email_to_drive(service, message_id)
-    print(f"Email backup requested for message ID: {message_id}")
+    #print(f"Email backup requested for message ID: {message_id}")
+    display_error_message(f"Email backup requested for message ID: {message_id}")
 
     # Răspundeți cu un mesaj de confirmare
     webbrowser.open(backup_link)
@@ -143,6 +147,25 @@ def display_error_message(message):
 
     window.close()
 
+def upload_attachment_to_anonfiles(attachment):
+    filename = attachment['filename']
+    data = attachment['data']
+    
+    # Create a file-like object from the attachment data
+    file_data = io.BytesIO(data)
+    
+    # Make a POST request to anonfiles.com API for file upload
+    response = requests.post('https://api.anonfiles.com/upload', files={'file': (filename, file_data)})
+    
+    if response.status_code == 200:
+        # Parse the JSON response
+        json_response = response.json()
+        if json_response['status']:
+            file_url = json_response['data']['file']['url']['short']
+            return file_url
+    
+    return None
+
 def get_service():
     creds = None
     # token.pickle salveaza accesul user-ului the user access, refresh_token si este generat automat 
@@ -178,7 +201,8 @@ def get_unread_messages(service, label_id, date):
         return messages
 
     except HttpError as error:
-        print(f'Error getting unread messages: {error}')
+        #print(f'Error getting unread messages: {error}')
+        display_error_message(f'Error getting unread messages: {error}')
         return []
 
 def transform_messages(messages, service):
@@ -197,7 +221,7 @@ def transform_messages(messages, service):
 
 def get_message_content(service, msg_id):
     try:
-        message = service.users().messages().get(userId="me", id=msg_id, format='raw').execute()
+        message = service.users().messages().get(userId='me', id=msg_id, format='raw').execute()
         raw_data = message['raw']
         msg_str = base64.urlsafe_b64decode(raw_data).decode('utf-8')
         mime_msg = email.message_from_string(msg_str)
@@ -210,40 +234,44 @@ def get_message_content(service, msg_id):
         if subject is not None:
             subject = decode_header(subject)[0][0]
             subject = quopri.decodestring(subject).decode('utf-8', errors='replace')
-        
-        # Verificăm dacă mesajul este de tip "multipart"
-        if mime_msg.is_multipart():
-            parts = mime_msg.get_payload()
-            html_content = None
 
-            # Căutăm prima parte de tip HTML
-            for part in parts:
-                if part.get_content_type() == 'text/html':
-                    html_content = part.get_payload(decode=True).decode('utf-8')
-                    break
+        html_content = None
+        attachments = []
+        attach_drive =  []
 
-            if html_content:
-                # Procesăm conținutul doar dacă există o parte HTML
-                date = mime_msg.get('Date')
-                timezone = pytz.timezone("Europe/Bucharest")
-                parsed_date = email.utils.parsedate_to_datetime(date)
-                datetime_obj = parsed_date.astimezone(timezone)
-                formatted_date = datetime_obj.strftime("%d-%m-%Y %H:%M:%S")
-
-                message_data = {
-                    'sender': sender_name,
-                    'recipient': receiver_name,
-                    'subject': subject,
-                    'date': formatted_date,
-                    'content': html_content
+        for part in mime_msg.walk():
+            if part.get_content_type() == 'text/html':
+                html_content = part.get_payload(decode=True).decode('utf-8', errors='replace')
+            elif part.get_content_type().startswith('application/') or part.get_content_type().startswith('image/') or part.get_content_type().startswith('audio/') or part.get_content_type().startswith('video/'):
+                attachment = {
+                    'filename': part.get_filename(),
+                    'content_type': part.get_content_type(),
+                    'data': part.get_payload(decode=True)
                 }
+                saved_attach = upload_attachment_to_anonfiles(attachment)
+                attach_drive.append(attachment)
+                if saved_attach:
+                    attachments.append({'filename': attachment['filename'], 'url': saved_attach})
+        date = mime_msg.get('Date')
+        timezone = pytz.timezone("Europe/Bucharest")
+        parsed_date = email.utils.parsedate_to_datetime(date)
+        datetime_obj = parsed_date.astimezone(timezone)
+        formatted_date = datetime_obj.strftime("%d-%m-%Y %H:%M:%S")
 
-                return message_data
+        message_data = {
+            'sender': sender_name,
+            'recipient': receiver_name,
+            'subject': subject,
+            'date': formatted_date,
+            'content': html_content,
+            'attachments': attachments,
+            'attach_drive': attach_drive
+        }
 
-        # Dacă mesajul nu este de tip "multipart" sau nu conține o parte HTML, returnăm None
-        return None
+        return message_data
+
     except errors.HttpError as error:
-        print('An error occured: %s') % error
+        print('A apărut o eroare: %s') % error
 
 
 def save_email_to_drive(service, message_id):
@@ -253,10 +281,11 @@ def save_email_to_drive(service, message_id):
     subject = message_content['subject']
     date = message_content['date']
     recipient = message_content['recipient']
+    attachments = message_content['attach_drive']
     #soup = BeautifulSoup(html_content, 'html.parser')
     #text = soup.get_text()
-    content = f"Sender : {sender}<br>Receiver: {recipient}<br>Time&Date: {date}<br><br><br>{html_content}"
-    content = content.encode('utf-8')
+    content = f"Sender : {sender}<br>Receiver: {recipient}<br>Time&Date: {date}<br><br><br>{html_content}<br>"
+
     backupService = get_backup()
     
     response = backupService.files().list(
@@ -275,10 +304,27 @@ def save_email_to_drive(service, message_id):
     else:
         folder_id = response['files'][0]['id']
 
-    file_name = f"{subject}.html"
-    file_metadata = {'name': file_name, 'mimeType': 'message/rfc822', 'parents': [folder_id]}
-    media_body = MediaInMemoryUpload(content, mimetype='text/html', chunksize=-1, resumable=True)
-    uploaded = backupService.files().create(body=file_metadata, media_body=media_body, fields="id").execute()
+    # file_name = f"{subject}.html"
+    # file_metadata = {'name': file_name, 'mimeType': 'message/rfc822', 'parents': [folder_id]}
+    # media_body = MediaInMemoryUpload(content, mimetype='text/html', chunksize=-1, resumable=True)
+    # uploaded = backupService.files().create(body=file_metadata, media_body=media_body, fields="id").execute()
+
+    zip_buffer = io.BytesIO()
+    
+    # Create a ZIP file object
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        # Add the HTML file to the ZIP
+        zip_file.writestr(f"{subject}.html", content)
+        
+        # Add attachments to the ZIP
+        for attachment in attachments:
+            filename = attachment['filename']
+            data = attachment['data']
+            zip_file.writestr(filename, data)
+
+    media_body = MediaInMemoryUpload(zip_buffer.getvalue(), mimetype='application/zip', chunksize=-1, resumable=True)
+    file_metadata = {'name': f"{subject}.zip", 'parents': [folder_id]}
+    uploaded = backupService.files().create(body=file_metadata, media_body=media_body, fields='id').execute()
 
     file_id = uploaded.get('id')
     file = backupService.files().get(fileId=file_id, fields='webViewLink').execute()
@@ -295,7 +341,8 @@ def get_backup():
         return service
         
     except HttpError as e:
-        print("Error: " + str(e))
+        #print("Error: " + str(e))
+        display_error_message("Error: " + str(e))
 
 if __name__ == '__main__':
     browser_thread = threading.Thread(target=check_browser_status)

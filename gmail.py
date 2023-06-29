@@ -1,7 +1,6 @@
 import subprocess
 import webbrowser
 import sys
-import os
 import platform
 from tkinter import *
 import customtkinter
