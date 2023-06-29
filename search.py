@@ -11,6 +11,7 @@ from email.header import decode_header
 import signal
 import os
 import webbrowser
+import shutil
 import PySimpleGUI as sg
 from googleapiclient import errors
 from googleapiclient.discovery import build
@@ -45,15 +46,15 @@ def shutdown_server():
     
 def check_browser_status():
     while True:
-        command = 'ps aux | grep -E "chromium.*127.0.0.1:5000"'
+        command = 'ps aux | grep -E "chrome.*http://127.0.0.1:5000" | grep -v "grep" | wc -l'
         
-        process = subprocess.run(command, shell=True, capture_output=True, text=True)
-        output = process.stdout
-        lines = output.split('\n') # o sa mai avem un rand in lines datorita \n 
-        #o sa mai avem un rand in lines datorita si subproces-ului pe care il rulam
-        num_processes = len(lines) - 2  # Subtract 2 to exclude the empty last line and the subprocess 
-        #print(num_processes)
-        if num_processes < 2:
+        num_processes = subprocess.run(command, shell=True, capture_output=True, text=True)
+        output = num_processes.stdout.strip()  # Remove leading/trailing whitespace
+        num_processes = int(output)  # Convert to integer
+        
+        print(num_processes)
+        
+        if num_processes < 1:
             shutdown_server()
             break
         time.sleep(1)
@@ -256,6 +257,32 @@ def save_email_to_drive(service, message_id):
     file = backupService.files().get(fileId=file_id, fields='webViewLink').execute()
     backup_link = file.get('webViewLink')
     return backup_link
+
+# def save_email_to_drive(service, message_id):
+#     message_content = get_message(service, 'me', message_id)
+#     html_content = message_content['content']
+#     sender = message_content['sender']
+#     subject = message_content['subject']
+#     date = message_content['date']
+#     recipient = message_content['recipient']
+#     soup = BeautifulSoup(html_content, 'html.parser')
+#     text = soup.get_text()
+#     content = f"Sender: {sender}<br>Receiver: {recipient}<br>Time & Date: {date}<br><br>{html_content}"
+
+#     # Create a unique filename for the HTML file
+#     file_name = f"{subject}.html"
+
+#     # Save the HTML content to a file
+#     with open(file_name, 'w', encoding='utf-8') as file:
+#         file.write(content)
+
+#     # Move the HTML file to the desired backup folder
+#     backup_folder = 'path/to/backup/folder'  # Specify the desired backup folder path
+#     file_path = os.path.join(backup_folder, file_name)
+#     shutil.move(file_name, file_path)
+
+#     backup_link = f"File saved: {file_path}"
+#     return backup_link
 
 def get_backup():
     creds = None

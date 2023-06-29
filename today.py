@@ -41,16 +41,15 @@ def shutdown_server():
     
 def check_browser_status():
     while True:
-        command = 'ps aux | grep -E "chromium.*127.0.0.1:5000"'
+        command = 'ps aux | grep -E "chrome.*http://127.0.0.1:5000" | grep -v "grep" | wc -l'
         
-        process = subprocess.run(command, shell=True, capture_output=True, text=True)
-        output = process.stdout
-        print(output)
-        lines = output.split('\n') # o sa mai avem un rand in lines datorita \n 
-        #o sa mai avem un rand in lines datorita si subproces-ului pe care il rulam
-        num_processes = len(lines) - 2  # Subtract 2 to exclude the empty last line and the subprocess 
+        num_processes = subprocess.run(command, shell=True, capture_output=True, text=True)
+        output = num_processes.stdout.strip()  # Remove leading/trailing whitespace
+        num_processes = int(output)  # Convert to integer
+        
         #print(num_processes)
-        if num_processes < 2:
+        
+        if num_processes < 1:
             shutdown_server()
             break
         time.sleep(1)
